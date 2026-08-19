@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Casa — the roommate notebook</title>
+<meta name="description" content="A hand-drawn shared notebook for college roommates: shopping list, events, expenses and chores." />
+<meta name="theme-color" content="#fdf8ec" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Patrick+Hand&family=Gloria+Hallelujah&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/sketch.css" />
+<link rel="stylesheet" href="./css/app.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+</head>
+<body>
+
+<!-- ── hand-drawn SVG filters ─────────────────────────────── -->
+<svg class="svg-defs" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="wobble">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02 0.04" numOctaves="3" seed="7" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="wobble-lite">
+      <feTurbulence type="fractalNoise" baseFrequency="0.03 0.05" numOctaves="2" seed="3" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.2" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="wobble-strong">
+      <feTurbulence type="fractalNoise" baseFrequency="0.015 0.03" numOctaves="4" seed="11" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="paper-grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+    </filter>
+  </defs>
+</svg>
+
+<!-- ── loading ───────────────────────────────────────────── -->
+<div id="boot" class="boot">
+  <div class="boot-doodle">🏠</div>
+  <p class="scrawl">sharpening pencils…</p>
+</div>
+
+<!-- ── sign-in screen ────────────────────────────────────── -->
+<section id="screen-auth" class="screen center-screen" hidden>
+  <div class="paper-card tilt-l cover">
+    <h1 class="logo">Casa</h1>
+    <p class="logo-sub">the roommate notebook</p>
+    <ul class="cover-list">
+      <li>🧺 what we need to buy</li>
+      <li>🎉 what's happening this week</li>
+      <li>💸 who owes who</li>
+      <li>🧽 whose turn it is</li>
+    </ul>
+    <div class="cover-actions">
+      <button class="btn btn-primary" id="btn-google">Sign in with Google</button>
+      <button class="btn" id="btn-guest">Just poke around (guest)</button>
+    </div>
+    <p class="tiny-note" id="auth-note"></p>
+  </div>
+</section>
+
+<!-- ── join / create house ───────────────────────────────── -->
+<section id="screen-house" class="screen center-screen" hidden>
+  <div class="paper-card tilt-r">
+    <h2 class="hand-title">Where do you live?</h2>
+    <div class="stack">
+      <label class="field">
+        <span>Name your house</span>
+        <input id="house-name" class="scribble-input" placeholder="e.g. 4B Maple St" maxlength="40" />
+      </label>
+      <button class="btn btn-primary" id="btn-create-house">Start a new house</button>
+      <div class="or-divider"><span>or</span></div>
+      <label class="field">
+        <span>Got a house code?</span>
+        <input id="house-code" class="scribble-input code-input" placeholder="ABC123" maxlength="6" />
+      </label>
+      <button class="btn" id="btn-join-house">Join house</button>
+      <p class="tiny-note" id="house-note"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ── main app ─────────────────────────────────────────── -->
+<div id="app" class="app" hidden>
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="brand">Casa</span>
+      <button class="house-chip" id="house-chip" title="House settings">
+        <span id="house-title">house</span>
+      </button>
+    </div>
+    <button class="avatar-btn" id="me-btn" title="Me"><span id="me-initial">?</span></button>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab is-active" data-view="list"><span class="tab-ico">🧺</span><span>List</span><i class="tab-badge" id="badge-list" hidden></i></button>
+    <button class="tab" data-view="events"><span class="tab-ico">🎉</span><span>Events</span><i class="tab-badge" id="badge-events" hidden></i></button>
+    <button class="tab" data-view="money"><span class="tab-ico">💸</span><span>Money</span></button>
+    <button class="tab" data-view="chores"><span class="tab-ico">🧽</span><span>Chores</span><i class="tab-badge" id="badge-chores" hidden></i></button>
+  </nav>
+
+  <main id="main" class="main"></main>
+
+  <button class="fab" id="fab" title="Add"><span>+</span></button>
+</div>
+
+<!-- ── modal ────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="modal-backdrop" hidden>
+  <div class="paper-card modal" id="modal" role="dialog" aria-modal="true">
+    <button class="modal-x" id="modal-x" aria-label="Close">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>

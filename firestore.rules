@@ -1,0 +1,64 @@
+rules_version = '2';
+
+// ============================================================
+//  Casa — Firestore security rules
+//  Paste these into Firebase console → Firestore → Rules → Publish
+//  (or: firebase deploy --only firestore:rules)
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function houseData(houseId) {
+      return get(/databases/$(database)/documents/houses/$(houseId)).data;
+    }
+
+    function isMember(houseId) {
+      return signedIn() && request.auth.uid in houseData(houseId).members;
+    }
+
+    // --- each user's own profile (which house they're in) ---
+    match /users/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // --- join-code lookup table: CODE -> houseId ---
+    // Any signed-in user may read a code (that's how joining works),
+    // but codes can never be edited or deleted once claimed.
+    match /codes/{code} {
+      allow get:    if signedIn();
+      allow create: if signedIn();
+      allow update, delete: if false;
+    }
+
+    // --- houses ---
+    match /houses/{houseId} {
+      allow get, list: if isMember(houseId);
+
+      // creator must put themselves in the members map
+      allow create: if signedIn()
+                    && request.auth.uid in request.resource.data.members;
+
+      allow update: if isMember(houseId)
+                    // ...or a newcomer adding *only themselves* (joining),
+                    // without dropping anyone who is already here.
+                    || (signedIn()
+                        && request.resource.data.diff(resource.data)
+                             .affectedKeys().hasOnly(['members', 'memberIds'])
+                        && request.auth.uid in request.resource.data.members
+                        && request.resource.data.members.keys()
+                             .hasAll(resource.data.members.keys()));
+
+      allow delete: if isMember(houseId);
+
+      // --- everything inside a house: items, events, expenses, chores ---
+      match /{collection}/{docId} {
+        allow read, write: if isMember(houseId);
+      }
+    }
+  }
+}
